@@ -1,31 +1,14 @@
-import Fastify from 'fastify';
-import { env } from './config/env.js';
+import Fastify, { FastifyInstance } from 'fastify';
 import { logger } from './plugins/logger.js';
 
-const app = Fastify({
-  loggerInstance: logger,
-  trustProxy: true,
-});
+export function buildApp(): FastifyInstance {
+  const app = Fastify({
+    loggerInstance: logger,
+    trustProxy: true,
+    bodyLimit: 1_048_576,
+  });
 
-app.get('/health', async () => ({ status: 'ok' }));
+  app.get('/health', async () => ({ status: 'ok' }));
 
-const start = async () => {
-  try {
-    await app.listen({ port: env.PORT, host: '0.0.0.0' });
-    logger.info({ port: env.PORT }, 'server started');
-  } catch (err) {
-    logger.fatal({ err }, 'server failed to start');
-    process.exit(1);
-  }
-};
-
-const shutdown = async (signal: string) => {
-  logger.info({ signal }, 'shutdown initiated');
-  await app.close();
-  process.exit(0);
-};
-
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-
-start();
+  return app;
+}
