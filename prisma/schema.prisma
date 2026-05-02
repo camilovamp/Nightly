@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 😳 NOTE FROM Camilo: Prisma does N😳T support model inheritance directly (no "extends").
+// The usual pattern is to repeat the common fields (id, uuid, createdAt, updatedAt) 😳😳 
+// model BaseModel {
+//   id        Int      @id @default(autoincrement())
+//   uuid      String   @unique @default(uuid()) @db.Uuid
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
+
+
+model Hotel {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid()) @db.Uuid
+  slug      String   @unique
+  name      String
+  city      String
+  country   String
+  latitude  Decimal  @db.Decimal(9, 6)
+  longitude Decimal  @db.Decimal(9, 6)
+  baseRate  Decimal  @map("base_rate") @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  rooms Room[]
+
+  @@map("hotels")
+}
+
+model Room {
+  id         Int      @id @default(autoincrement())
+  uuid       String   @unique @default(uuid()) @db.Uuid
+  hotelId    Int      @map("hotel_id")
+  roomNumber String   @map("room_number")
+  roomType   String   @map("room_type")
+  capacity   Int
+  baseRate   Decimal  @map("base_rate") @db.Decimal(10, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  hotel Hotel @relation(fields: [hotelId], references: [id])
+
+  @@unique([hotelId, roomNumber])
+  @@index([hotelId, roomType])
+  @@map("rooms")
+}
+
