@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nightly-postgres
+    environment:
+      POSTGRES_USER: nightly
+      POSTGRES_PASSWORD: nightly
+      POSTGRES_DB: nightly
+    ports:
+      - "5432:5432"
+    volumes:
+      - nightly-pg-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: nightly-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  nightly-pg-data:
