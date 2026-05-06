@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaClient, BookingStatus, PaymentStatus } from '@prisma/client';
+import { wipeDb } from '../helpers/db.js';
 
 const prisma = new PrismaClient();
 
@@ -8,6 +9,7 @@ describe('Booking domain schema', () => {
   afterAll(async () => { await prisma.$disconnect(); });
 
   beforeEach(async () => {
+    await wipeDb(prisma);
     await prisma.payment.deleteMany();
     await prisma.booking.deleteMany();
     await prisma.outboxEvent.deleteMany();

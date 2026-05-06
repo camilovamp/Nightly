@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../../src/server.js';
+import { wipeDb } from '../helpers/db.js';
 
 const prisma = new PrismaClient();
 
@@ -22,6 +23,7 @@ describe('GET /hotels/:uuid/rooms', () => {
   });
 
   beforeEach(async () => {
+    await wipeDb(prisma);
     await prisma.room.deleteMany();
     await prisma.hotel.deleteMany();
 

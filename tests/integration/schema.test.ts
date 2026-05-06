@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import { wipeDb } from '../helpers/db.js';
+
 
 const prisma = new PrismaClient();
 
@@ -14,6 +16,7 @@ describe('Hotel + Room schema', () => {
 
   beforeEach(async () => {
     // each test gets a clean slate
+    await wipeDb(prisma);
     await prisma.room.deleteMany();
     await prisma.hotel.deleteMany();
   });
