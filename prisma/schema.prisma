@@ -17,6 +17,20 @@ datasource db {
 // }
 
 //@db.Uuid is a Native uuid is 16-byte binary, not 36-byte text; smaller column, faster comparison, supports uuid-specific operators.
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
 
 model Hotel {
   id        Int      @id @default(autoincrement())
@@ -31,7 +45,8 @@ model Hotel {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  rooms Room[]
+  rooms    Room[]
+  bookings Booking[]
 
   @@map("hotels")
 }
@@ -47,11 +62,95 @@ model Room {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  hotel Hotel @relation(fields: [hotelId], references: [id])
+  hotel    Hotel     @relation(fields: [hotelId], references: [id])
+  bookings Booking[]
 
-  //same room number can exist in different hotels, but not twice in one hotel.
   @@unique([hotelId, roomNumber])
   @@index([hotelId, roomType])
   @@map("rooms")
 }
 
+model Guest {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @unique @default(uuid()) @db.Uuid
+  email     String   @unique
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  bookings Booking[]
+
+  @@map("guests")
+}
+
+model Booking {
+  id           Int           @id @default(autoincrement())
+  uuid         String        @unique @default(uuid()) @db.Uuid
+  hotelId      Int           @map("hotel_id")
+  roomId       Int           @map("room_id")
+  guestId      Int           @map("guest_id")
+  checkInDate  DateTime      @map("check_in_date") @db.Date
+  checkOutDate DateTime      @map("check_out_date") @db.Date
+  totalAmount  Decimal       @map("total_amount") @db.Decimal(10, 2)
+  status       BookingStatus @default(PENDING)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  hotel    Hotel     @relation(fields: [hotelId], references: [id])
+  room     Room      @relation(fields: [roomId], references: [id])
+  guest    Guest     @relation(fields: [guestId], references: [id])
+  payments Payment[]
+
+  @@index([hotelId, checkInDate])
+  @@index([roomId, status])
+  @@map("bookings")
+}
+
+model Payment {
+  id          Int           @id @default(autoincrement())
+  uuid        String        @unique @default(uuid()) @db.Uuid
+  bookingId   Int           @map("booking_id")
+  amount      Decimal       @db.Decimal(10, 2)
+  currency    String        @default("USD")
+  status      PaymentStatus @default(PENDING)
+  processedAt DateTime?     @map("processed_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@map("payments")
+}
+
+model IdempotencyKey {
+  id             Int      @id @default(autoincrement())
+  uuid           String   @unique @default(uuid()) @db.Uuid
+  key            String
+  endpoint       String
+  responseStatus Int      @map("response_status")
+  responseBody   Json     @map("response_body")
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([key, endpoint])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+model OutboxEvent {
+  id            Int       @id @default(autoincrement())
+  uuid          String    @unique @default(uuid()) @db.Uuid
+  aggregateType String    @map("aggregate_type")
+  aggregateId   String    @map("aggregate_id")
+  eventType     String    @map("event_type")
+  payload       Json
+  processedAt   DateTime? @map("processed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("outbox_events")
+}
